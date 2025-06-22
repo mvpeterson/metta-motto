@@ -1,3 +1,4 @@
+import datetime
 import time
 from motto.agents import DialogAgent, MettaAgent
 from hyperon.ext import register_atoms
@@ -6,6 +7,9 @@ from queue import Queue
 import threading
 from motto.utils import *
 import logging
+
+system_event_description = {"speechstart": "[Event] User started speaking",
+                            "speechcont": "[Event] User continues speaking"}
 
 
 class AgentArgs:
@@ -109,7 +113,7 @@ class ListeningAgent(DialogAgent):
         elif str(input.message).startswith("(") and str(input.message).endswith(")"):
             message = input.message
         else:
-            message = f"(Messages (user \"{input.message}\"))"
+            message = f"(user \"{input.message}\")"
         if (message is None) and (input.additional_info is None):
             self.set_processing_val(False)
             return
@@ -126,8 +130,10 @@ class ListeningAgent(DialogAgent):
             if self.interrupt_processing_var:
                 self.log.info(f"message_processor:interrupt processing for message {message}\n")
                 resp = "..."
-
-            self.history += [E(S(assistant_role), G(ValueObject(resp)))]
+            self.add_history(event_time=datetime.now(), history_dict={"event": "speech",
+                                                                      "role": assistant_role,
+                                                                      "is_stream": False,
+                                                                      "message": resp})
             self.log.info(f"message_processor: return response for message {message} : {resp}")
             yield resp if input.language is None else (resp, input.language)
             # interrupt processing
@@ -141,16 +147,34 @@ class ListeningAgent(DialogAgent):
             msg = msg['text']
         if isinstance(msg, str):
             msg = {"message": msg}
+
+
         self.messages.put(AgentArgs(**msg))
+
+    def create_event_message(self, event_name,  user_id=None):
+        if event_name in system_event_description:
+            message = system_event_description[event_name]
+        else:
+            message = f"[Event] {event_name}"
+        if user_id is not None:
+            message = message + f" [User_Id]: {user_id}"
+        return message
 
     def handle_speechstart(self, arg):
         self.speech_start = get_grounded_atom_value(arg)
+        self.add_history(event_time=self.speech_start,
+                         history_dict={"event": "speechstart",
+                                       "is_stream": False,
+                                       "role": "system"})
         if self.processing:
             self.set_canceling_variable(not self.said)
         return []
 
     def handle_speechcont(self, arg):
-        if self.processing and self.said and ((time.time() - self.speech_start) > 0.5):
+        tm = get_grounded_atom_value(arg)
+        self.add_history(event_time=tm, history_dict={"event": "speechcont",
+                                                      "is_stream": False, "role": "system"})
+        if self.processing and self.said and ((time.time() - self.speech_start.timestamp()) > 0.5):
             self.set_interrupt_variable(True)
         return []
 
@@ -180,8 +204,8 @@ def listening_gate_atoms(metta):
         r"listening-agent": OperationAtom('listening-agent',
                                           lambda path=None, event_bus=None:
                                           ListeningAgent.get_agent_atom(None,
-                                                                      unwrap=False,
-                                                                      path=path,
-                                                                      event_bus=event_bus),
+                                                                        unwrap=False,
+                                                                        path=path,
+                                                                        event_bus=event_bus),
                                           unwrap=False),
     }

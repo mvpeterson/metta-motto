@@ -17,7 +17,7 @@
    (if (and ($what $A $C) ($C $B))
        $B (empty)))
 
-!(bind! &agent (metta-agent "06b_reason_with_structured_output.msa"))
+!(bind! &agent (metta-agent "reason_with_structured_output.msa"))
 
 ; represent $fact as metta expression
 !(match &self (Fact $fact)
