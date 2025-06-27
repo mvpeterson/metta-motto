@@ -1,6 +1,6 @@
 !(import! &self motto)
 !(set-sparql-service-type "wikidata")
-!((metta-script-agent "10_generate_query_wikidata.msa") (user "List all known works of Vivaldi"))
+!((metta-script-agent "app2_generate_query_wikidata.msa") (user "List all known works of Vivaldi"))
 ;$result
 (select ((fields ($workLabel))
         (where

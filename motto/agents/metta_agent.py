@@ -71,6 +71,7 @@ class MettaScriptAgent(MettaAgent):
         # Loading the code after _prepare
         super()._load_code()
         response = self._metta.run('!(response)')
+
         return self._postproc(response[0])
 
 
@@ -106,44 +107,59 @@ class DialogAgent(MettaAgent):
         for k,v in history_dict.items():
             if k not in processed_keys:
                 dict_space.add_atom(E(S(k), ValueAtom(v)))
-
         self._metta.space().add_atom(E(S("history"), ValueAtom(get_ticks(event_time)), G(dict_space)))
+
+    def get_sentence_history(self):
+        history_dicts = self._metta.run('''
+                !(let ($time $sp)  (match &self (history $t $s) ($t $s))
+                        (match  $sp (,(event "sentence") (message $message) (is_stream False) (user_id $user)) ($time $message $user))
+                 )
+                ''', True)
+
+        t = [x.get_children() for x in history_dicts]
+        return sorted(t, key=lambda x: x[0].get_object().value)
 
     def get_speech_history(self):
         history_dicts = self._metta.run('''
-                !((py-atom sorted)
-                        (py-list
-                            (collapse
-                                (let ($time $sp)  (match &self (history $t $s) ($t $s))
-                                    (match  $sp (,(event "speech") (message $message) (is_stream $stream)) ($time $message $stream))
-                                )
-                            )
-                         )
-                         (Kwargs (key ((py-atom operator.itemgetter) 0)))
-                    )
+                ! (let ($time $sp)  (match &self (history $t $s) ($t $s))
+                                    (match  $sp (,(event "speech") (message $message)(user_id $user)) ($time $message $user))
+                  )
                 ''', True)
 
-        return history_dicts[0].get_object().value
+        t = [x.get_children() for x in history_dicts]
+        return sorted(t, key=lambda x: x[0].get_object().value)
+
+    def get_user_id_info(self, history):
+        user_id = None
+        speech_hist = self.get_speech_history()
+        if len(speech_hist) > 0:
+            hist = speech_hist[-1]
+            user_id = hist[2].get_object().value
+            # add "speech" event to history only if we know the user_id
+            if user_id is not None:
+                history.append(hist[1])
+
+        return user_id
+
 
     def _prepare(self, msgs_atom, additional_info=None):
         super()._prepare(msgs_atom, additional_info)
 
         history = []
-        history_dicts = self.get_speech_history()
+        history_dicts = self.get_sentence_history()
+
         for hist in history_dicts:
-            if not hist[2]: # not stream
-                history.append(E(hist[1][0], ValueAtom(get_string(hist[1][1]))))
+            history.append(hist[1])
+        user_id = self.get_user_id_info(history)
 
         self._context_space.get_object().add_atom(
             E(S('='), E(S('history')), E(S('Messages'), *history)))
+
         # atm, we put the input message into the history by default
-        self.add_history(event_time=datetime.now(), history_dict={"event": "speech",
+        self.add_history(event_time=datetime.now(), history_dict={"event": "sentence",
                                                                   "is_stream": False,
+                                                                  "user_id": user_id,
                                                                   "message": msgs_atom})
-
-        #print("atoms", self._context_space.get_object().get_atoms())
-
-
 
     def _postproc(self, response):
         # TODO it's very initial version of post-processing
@@ -154,11 +170,13 @@ class DialogAgent(MettaAgent):
         # the history as well as to do other stuff
         result = super()._postproc(response)
         # TODO: 0 or >1 results, to expression?
-        resp_value = get_string_value(result.content[0])
-        self.add_history(event_time=datetime.now(), history_dict={"event": "speech",
+        resp_value = get_string(result.content[0])
+        self.add_history(event_time=datetime.now(), history_dict={"event": "sentence",
                                                                   "role": assistant_role,
                                                                   "is_stream": not isinstance(resp_value, str),
+                                                                  "user_id": None,
                                                                   "message":  resp_value})
+
         return result
 
     def clear_history(self):
@@ -166,13 +184,25 @@ class DialogAgent(MettaAgent):
             f"!(let ($time $sp) (match &self (history $t $s) ($t $s)) \
             (remove-atom &self  (history $time $sp)))")
 
+    def _get_history(self):
+        history_dicts = self._metta.run(
+            f"!(match &self (history $t $s) $s)")
+
+        hist = history_dicts[0]
+        for h in hist:
+            try:
+                print("hist:", h.get_object().get_atoms())
+            except Exception as ex:
+                print(ex)
+
     def get_response_by_index(self, index, role=assistant_role):
-        history_dicts = self.get_speech_history()
+        history_dicts = self.get_sentence_history()
         if len(history_dicts) - 1 < index:
             return None
         hist = history_dicts[index][1]
-        if hist[0].get_name() == role:
-            return hist[1]
+        children = hist.get_children()
+        if children[0].get_name() == role:
+            return children[1].get_object().value
         return None
 
     def process_stream_response(self, response):
@@ -184,9 +214,10 @@ class DialogAgent(MettaAgent):
             stream = get_sentence_from_stream_response(response)
             can_close = hasattr(response, "close")
             for i, sentence in enumerate(stream):
-                self.add_history(event_time=datetime.now(), history_dict={"event": "speech",
+                self.add_history(event_time=datetime.now(), history_dict={"event": "sentence",
                                                                           "role": assistant_role,
                                                                           "is_stream": False,
+                                                                          "user_id": None,
                                                                           "message": sentence})
                 yield sentence
 

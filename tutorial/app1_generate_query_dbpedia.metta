@@ -1,5 +1,5 @@
 !(import! &self motto)
-!((metta-script-agent "09_generate_query_dbpedia.msa") (user "List all known works of Vivaldi"))
+!((metta-script-agent "app1_generate_query_dbpedia.msa") (user "List all known works of Vivaldi"))
 ;result
 (select
     (
