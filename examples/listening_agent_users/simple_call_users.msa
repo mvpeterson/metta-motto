@@ -1,0 +1,52 @@
+(= (doc set_user_name )
+  (Doc
+    (description "If user says his name, this function adds user's name to agent memory")
+        (parameters
+          (user_name "the name of the user, if user has introduced himself")
+          ((: user_id  Atom) "the id of the current user")
+        )
+    )
+)
+(= (set_user_name ($user_name $user_id) $msgs)
+  ( let* (
+            ($space (new-space))
+            (()(add-atom $space (user_name $user_name)))
+            (()(add-atom $space (user_id $user_id)))
+            (() (add-atom &self (history (get-ticks ((py-atom datetime.datetime.now))) $space)))
+         )
+         (concat-str "Nice to meet you " $user_name)
+  )
+)
+
+
+(= (doc get_user_name )
+  (Doc
+    (description "Finds user's name in agent memory. The function is called when the user asks if the assistant knows their name.")
+        (parameters
+          ((: user_id  Atom) "the id of the current user")
+        )
+    )
+)
+(= (name_getter $user_id)
+   ( let* (
+          ($sp (match &self (history $t $s) $s)))
+          (match  $sp (, (user_id $user_id) (user_name $name)) $name)
+   )
+)
+
+(= (get_user_name ($user_id) $msgs)
+    (case (collapse (name_getter $user_id))
+        (
+          (() "i do not know your name ")
+          (($name) (concat-str "Your name is " $name))
+          ($_  (concat-str "You provided several names earlier.  For example " (car-atom $_)))
+        )
+     )
+)
+
+(= (respond)((chat-gpt-agent "gpt-3.5-turbo" True True) (Messages (history)  (messages))  (Function set_user_name) (Function get_user_name)) )
+(= (response) (respond))
+
+!(queue-subscription speech handle-speech)
+!(queue-subscription speechstart handle-speechstart)
+!(queue-subscription speechcont handle-speechcont)

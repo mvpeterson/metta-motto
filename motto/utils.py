@@ -154,3 +154,15 @@ def remove_quotes(str_atom, replace_space=False):
     return S(str)
 
 
+from datetime import datetime
+
+def get_ticks(dt):
+    # The epoch for .NET DateTime (0001-01-01)
+    dt = get_grounded_atom_value(dt)
+    epoch = datetime(1, 1, 1)
+    # Calculate the difference
+    delta = dt - epoch
+    # Convert to ticks (1 tick = 100 nanoseconds)
+    return int(delta.total_seconds() * 10**7)
+
+

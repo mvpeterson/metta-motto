@@ -13,16 +13,20 @@ def llmgate_atoms(metta):
     containsStrAtom = OperationAtom('contains-str', lambda a, b: [ValueAtom(contains_str(a, b))],
                                     type_names=['%Undefined%', '%Undefined%', 'Bool'], unwrap=False)
     concatStrAtom = OperationAtom('concat-str', lambda a, b: [ValueAtom(concat_str(a, b))],
-                                  type_names=['%Undefined%', '%Undefined%', 'Bool'], unwrap=False)
+                                   unwrap=False)
+
     dictToMettaAtom = OperationAtom('dict-to-metta', lambda a: [G(dict_to_metta_expr(a))], unwrap=False)
     symbolicToGroundedAtom = OperationAtom('remove-quotes', lambda a, b=False: [remove_quotes(a, b)], unwrap=False)
 
     message2tupleAtom = OperationAtom('message2tuple', lambda a: [ValueAtom(message2tuple(a))], unwrap=False)
+
+    getTicksAtom = OperationAtom('get_ticks', lambda a: [ValueAtom(get_ticks(a))],  unwrap=False)
     result = {r"atom2msg": msgAtom, r"_eval": OperationAtom("_eval",
                                                             lambda atom: metta.run("! " + atom.get_object().value)[0],
                                                             unwrap=False),
               r"contains-str": containsStrAtom,
               r"concat-str": concatStrAtom,
+              r"get-ticks": getTicksAtom,
               r"message2tuple": message2tupleAtom,
               r"dict-to-metta": dictToMettaAtom,
               r'remove-quotes': symbolicToGroundedAtom,

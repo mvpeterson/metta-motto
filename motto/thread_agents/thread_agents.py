@@ -1,3 +1,4 @@
+import datetime
 import time
 from motto.agents import DialogAgent, MettaAgent
 from hyperon.ext import register_atoms
@@ -7,13 +8,17 @@ import threading
 from motto.utils import *
 import logging
 
+system_event_description = {"speechstart": "[Event] User started speaking",
+                            "speechcont": "[Event] User continues speaking", "speech": "[Event] User said sentence"}
+
 
 class AgentArgs:
-    def __init__(self, message, functions=[], additional_info=None, language=None):
+    def __init__(self, message, functions=[], additional_info=None, language=None, user_id=None):
         self.message = get_grounded_atom_value(message)
         self.additional_info = get_grounded_atom_value(additional_info)
         self.functions = get_grounded_atom_value(functions)
         self.language = language
+        self.user_id = user_id
 
 
 class ListeningAgent(DialogAgent):
@@ -35,6 +40,7 @@ class ListeningAgent(DialogAgent):
         super().__init__(path, atoms, include_paths, code, event_bus=event_bus)
         self.lock = threading.RLock()
         self.messages = Queue()
+        self.speech_start = None
 
     def _postproc(self, response):
         # do not need to save history here so the method from MettaAgent is used
@@ -109,7 +115,7 @@ class ListeningAgent(DialogAgent):
         elif str(input.message).startswith("(") and str(input.message).endswith(")"):
             message = input.message
         else:
-            message = f"(Messages (user \"{input.message}\"))"
+            message = f"(user \"{input.message}\")"
         if (message is None) and (input.additional_info is None):
             self.set_processing_val(False)
             return
@@ -126,8 +132,14 @@ class ListeningAgent(DialogAgent):
             if self.interrupt_processing_var:
                 self.log.info(f"message_processor:interrupt processing for message {message}\n")
                 resp = "..."
+            history_dict = {"event": "sentence",
+                            "role": assistant_role,
+                            "is_stream": False,
+                            "user_id": None,
+                            "message": resp}
 
-            self.history += [E(S(assistant_role), G(ValueObject(resp)))]
+            self.add_history(event_time=datetime.now(), history_dict=history_dict)
+            #self._get_history()
             self.log.info(f"message_processor: return response for message {message} : {resp}")
             yield resp if input.language is None else (resp, input.language)
             # interrupt processing
@@ -135,27 +147,61 @@ class ListeningAgent(DialogAgent):
                 break
         self.set_processing_val(False)
 
-    def input(self, msg):
-        msg = get_grounded_atom_value(msg)
-        if 'text' in msg:
-            msg = msg['text']
+    def get_args(self, arg):
+        args = []
+        if hasattr(arg, "get_children"):
+            for ch in arg.get_children():
+                args.append(get_grounded_atom_value(ch))
+        else:
+            args.append(get_grounded_atom_value(arg))
+        return args
+
+    def input(self, args):
+
+        msg = args[0]
+        if 'data' in msg:
+            msg = msg['data']
         if isinstance(msg, str):
             msg = {"message": msg}
+        if len(args) > 1:
+            msg['user_id'] = args[1]
+
         self.messages.put(AgentArgs(**msg))
 
+    def create_event_message(self, event_name,  user_id=None):
+        if event_name in system_event_description:
+            message = system_event_description[event_name]
+        else:
+            message = f"[Event] {event_name}"
+        if user_id is not None:
+            message = message + f" [User_Id]: {user_id}"
+        return message
+
     def handle_speechstart(self, arg):
-        self.speech_start = get_grounded_atom_value(arg)
+        args = self.get_args(arg)
+        self.speech_start = args[0]
+        history_dict = {"event": "speechstart", "role": "system", "user_id": args[1] if len(args) > 1 else None}
+        self.add_history(event_time=self.speech_start,
+                         history_dict=history_dict)
         if self.processing:
             self.set_canceling_variable(not self.said)
         return []
 
     def handle_speechcont(self, arg):
-        if self.processing and self.said and ((time.time() - self.speech_start) > 0.5):
+        args = self.get_args(arg)
+        tm = args[0]
+        history_dict = {"event": "speechcont", "role": "system", "user_id": args[1] if len(args) > 1 else None}
+        self.add_history(event_time=tm, history_dict=history_dict)
+        if self.processing and self.said and ((time.time() - self.speech_start.timestamp()) > 0.5):
             self.set_interrupt_variable(True)
         return []
 
     def handle_speech(self, data):
-        self.input(data)
+        args = self.get_args(data)
+        self.input(args)
+        history_dict = {"event": "speech", "role": "system", "user_id": args[1] if len(args) > 1 else None}
+        self.add_history(event_time=datetime.now(), history_dict=history_dict)
+
         return []
 
     def stop(self):
@@ -180,8 +226,8 @@ def listening_gate_atoms(metta):
         r"listening-agent": OperationAtom('listening-agent',
                                           lambda path=None, event_bus=None:
                                           ListeningAgent.get_agent_atom(None,
-                                                                      unwrap=False,
-                                                                      path=path,
-                                                                      event_bus=event_bus),
+                                                                        unwrap=False,
+                                                                        path=path,
+                                                                        event_bus=event_bus),
                                           unwrap=False),
     }
