@@ -1,5 +1,5 @@
 !(import! &self motto)
-
+!(import! &self py_ops)
 ;test filters
 !(assertEqual
     (filter (not (bound $url)))

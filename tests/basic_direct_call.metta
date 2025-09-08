@@ -1,4 +1,5 @@
 !(import! &self motto)
+!(import! &self py_ops)
 
 ; Testing parsing of arguments for EchoAgent,
 ; which is passed explicitly as one of the arguments

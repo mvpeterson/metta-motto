@@ -1,5 +1,5 @@
 !(import! &self motto)
-
+!(import! &self py_ops)
 ; A dialog agent, which calls another agent with the additional system message,
 ; which should not appear in the history
 !(bind! &chat (dialog-agent nested_dialog_agent.msa))

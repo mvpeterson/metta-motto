@@ -1,5 +1,4 @@
 !(import! &self motto)
-
 ; In order to keep the dialog history, we need to use the same agent
 !(bind! &chat (dialog-agent 07_dialog.msa))
 

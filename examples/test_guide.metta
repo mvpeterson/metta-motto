@@ -1,5 +1,5 @@
 !(import! &self motto)
-
+!(import! &self py_ops)
 ! (bind! &messages (new-space))
 
 (= (messages)
@@ -23,13 +23,13 @@
 ! (let $rewrite (new-state "[continue here]")
      (add-atom &self (= (rewrite) $rewrite)))
 
-! (user! ("Tweak this proverb to apply to model instructions instead.\\n"
+!(user! ("Tweak this proverb to apply to model instructions instead.\\n"
           (proverb)
           "\\n-" (book) (chapter) ":" (verse)
           "\\nUPDATED\\n"
           "Where there is no guidance" (get-state (rewrite))))
 
-! (nop (change-state! (rewrite) ((chat-gpt-agent) (messages))))
+!(nop (change-state! (rewrite) ((chat-gpt-agent) (messages))))
 
-! (atom2msg (get-atoms &messages))
+!(atom2msg (get-atoms &messages))
 

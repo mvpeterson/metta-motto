@@ -1,5 +1,5 @@
 !(import! &self motto)
-
+!(import! &self py_ops)
 ; This is another PoC example of LLM-MeTTa interoperability
 
 ; Here, we have a set of statements in natural language

@@ -1,3 +1,4 @@
+!(import! &self py_ops)
 ; This is an example of passive script - it doesn't execute
 ; any code, but only stores the parameters for the llm call.
 ; This is an ordinary MeTTa code, but it is supposed to be passed
