@@ -7,9 +7,9 @@
         (cons-atom Messages $messages)))
 
 ; All these functions might not be needed if the prompt program is in a separate script
-(: system! (-> Atom Atom))
-(: user! (-> Atom Atom))
-(: assistant! (-> Atom Atom))
+(: system! (-> Atom %Undefined%))
+(: user! (-> Atom %Undefined%))
+(: assistant! (-> Atom %Undefined%))
 (= (system! $msg) (add-atom &messages (system $msg)))
 (= (user! $msg) (add-atom &messages (user $msg)))
 (= (assistant! $msg) (add-atom &messages (assistant $msg)))
