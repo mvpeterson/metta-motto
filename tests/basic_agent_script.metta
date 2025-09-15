@@ -1,5 +1,5 @@
 !(import! &self motto)
-
+!(import! &self py_ops)
 !(bind! &agent (metta-script-agent "basic_agent_script.msa"))
 
 !(assertEqual

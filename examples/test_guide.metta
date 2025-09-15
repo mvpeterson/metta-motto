@@ -1,5 +1,4 @@
 !(import! &self motto)
-!(import! &self py_ops)
 ! (bind! &messages (new-space))
 
 (= (messages)

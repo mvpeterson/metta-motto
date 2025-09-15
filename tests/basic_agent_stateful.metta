@@ -1,5 +1,5 @@
 !(import! &self motto)
-
+!(import! &self py_ops)
 !(bind! &agent (metta-agent "basic_agent_stateful.msa"))
 
 ; The agent should change the response on the second call

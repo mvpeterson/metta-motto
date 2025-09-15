@@ -21,6 +21,7 @@ class MettaAgent(Agent):
         super()._init_metta()
         # TODO: assert
         self._metta.run("!(import! &self motto)")
+        self._metta.run("!(import! &self py_ops)")
 
     def _prepare(self, msgs_atom, additional_info=None):
         # The context space is recreated on each call
@@ -110,7 +111,6 @@ class DialogAgent(MettaAgent):
         self._metta.space().add_atom(E(S("history"), ValueAtom(get_ticks(event_time)), G(dict_space)))
 
     def get_sentence_history(self):
-        self._metta.run("!(import! &self py_ops)")
         history_dicts = self._metta.run('''
                 !(let ($time $sp)  (match &self (history $t $s) ($t $s))
                         (match  $sp (,(event "sentence") (message $message) (is_stream False) (user_id $user)) ($time $message $user))
@@ -121,7 +121,6 @@ class DialogAgent(MettaAgent):
         return sorted(t, key=lambda x: x[0].get_object().value)
 
     def get_speech_history(self):
-        self._metta.run("!(import! &self py_ops)")
         history_dicts = self._metta.run('''
                 ! (let ($time $sp)  (match &self (history $t $s) ($t $s))
                                     (match  $sp (,(event "speech") (message $message)(user_id $user)) ($time $message $user))
@@ -182,13 +181,11 @@ class DialogAgent(MettaAgent):
         return result
 
     def clear_history(self):
-        self._metta.run("!(import! &self py_ops)")
         self._metta.run(
             f"!(let ($time $sp) (match &self (history $t $s) ($t $s)) \
             (remove-atom &self  (history $time $sp)))")
 
     def _get_history(self):
-        self._metta.run("!(import! &self py_ops)")
         history_dicts = self._metta.run(
             f"!(match &self (history $t $s) $s)")
 
