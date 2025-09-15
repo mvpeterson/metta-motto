@@ -24,5 +24,4 @@
 !(publish-event &events speech ((py-dict (("data" "What is my name?"))) 2))
 !((py-atom time.sleep) 5)
 !(&a1 .say)
-
 !(&a1 .stop)

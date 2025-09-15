@@ -1,5 +1,5 @@
 !(import! &self motto)
-
+!(import! &self py_ops)
 (= (user-query) "Hello world.")
 
 !(assertEqual ((echo-agent) (Script basic_script.mps))

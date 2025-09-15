@@ -1,5 +1,5 @@
 !(import! &self motto)
-
+!(import! &self py_ops)
 (= (no-new-expression) True)
 
 !(assertEqual

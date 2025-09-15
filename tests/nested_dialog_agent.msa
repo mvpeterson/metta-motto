@@ -1,3 +1,4 @@
+!(import! &self py_ops)
 (= (respond $msg)
    (case $msg
      (("Hello" "Hello")

@@ -1,6 +1,8 @@
 ; The response depends on the history (in the simplest way).
 ; It also passes the history together with the current message[s]
 ; to another agent, which is not a dialog agent.
+!(import! &self py_ops)
+
 (= (response)
    (if (== (history) (Messages))
        "Nice to meet you"

@@ -1,5 +1,4 @@
 !(import! &self motto)
-
 ! (bind! &messages (new-space))
 
 (= (messages)
@@ -7,9 +6,9 @@
         (cons-atom Messages $messages)))
 
 ; All these functions might not be needed if the prompt program is in a separate script
-(: system! (-> Atom Atom))
-(: user! (-> Atom Atom))
-(: assistant! (-> Atom Atom))
+(: system! (-> Atom %Undefined%))
+(: user! (-> Atom %Undefined%))
+(: assistant! (-> Atom %Undefined%))
 (= (system! $msg) (add-atom &messages (system $msg)))
 (= (user! $msg) (add-atom &messages (user $msg)))
 (= (assistant! $msg) (add-atom &messages (assistant $msg)))
@@ -23,13 +22,13 @@
 ! (let $rewrite (new-state "[continue here]")
      (add-atom &self (= (rewrite) $rewrite)))
 
-! (user! ("Tweak this proverb to apply to model instructions instead.\\n"
+!(user! ("Tweak this proverb to apply to model instructions instead.\\n"
           (proverb)
           "\\n-" (book) (chapter) ":" (verse)
           "\\nUPDATED\\n"
           "Where there is no guidance" (get-state (rewrite))))
 
-! (nop (change-state! (rewrite) ((chat-gpt-agent) (messages))))
+!(nop (change-state! (rewrite) ((chat-gpt-agent) (messages))))
 
-! (atom2msg (get-atoms &messages))
+!(atom2msg (get-atoms &messages))
 

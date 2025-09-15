@@ -1,5 +1,5 @@
 !(import! &self motto)
-
+!(import! &self py_ops)
 !(bind! &chat (dialog-agent chat_echo_history.msa))
 
 ; the metta_chat script outputs "Nice to meet you"

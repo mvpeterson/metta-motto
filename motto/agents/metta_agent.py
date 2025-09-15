@@ -21,6 +21,7 @@ class MettaAgent(Agent):
         super()._init_metta()
         # TODO: assert
         self._metta.run("!(import! &self motto)")
+        self._metta.run("!(import! &self py_ops)")
 
     def _prepare(self, msgs_atom, additional_info=None):
         # The context space is recreated on each call
